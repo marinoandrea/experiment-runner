@@ -3,7 +3,6 @@
 **/compare_wasm/
 */.DS_Store
 .DS_Store
-.vscode
 .python-version
 tmp/
 _trial_temp/
@@ -11,4 +10,3 @@ pycharm-interpreter.sh
 python
 
 /.idea/
-/venv/

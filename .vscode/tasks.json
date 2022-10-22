@@ -1,0 +1,11 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "WasmExperiment",
+            "type": "shell",
+            "command": "/home/experiment/experiment-runner-green-lab-2022/venv/bin/python3 /home/experiment/experiment-runner-green-lab-2022/experiment-runner /home/experiment/experiment-runner-green-lab-2022/WasmExperiment/Experiment/RunnerConfig.py",
+            "presentation": {"echo": true, "reveal": "always", "focus": false, "panel": "shared", "showReuseMessage": false, "clear": true}
+        }
+    ]
+}
