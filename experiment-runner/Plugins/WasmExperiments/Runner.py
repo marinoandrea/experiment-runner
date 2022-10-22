@@ -7,14 +7,16 @@ from signal import Signals
 from os.path import join
 from psutil import Process
 
+from Plugins.WasmExperiments.ClassProperty import ClassPropertyMetaClass, classproperty
 from Plugins.WasmExperiments.ProcessManager import ProcessManager
 from ConfigValidator.Config.Models.FactorModel import FactorModel
 from ConfigValidator.Config.Models.RunnerContext import RunnerContext
 
 
 class Runner(ProcessManager):
+
     class RunnerConfig:
-        pass
+        __metaclass__ = ClassPropertyMetaClass
 
     def __init__(self, config: Type[RunnerConfig] = RunnerConfig):
         self.config: Type[RunnerConfig] = config
@@ -35,8 +37,18 @@ RunnerConfig = Runner.RunnerConfig
 
 
 class TimedRunner(Runner):
+
     class TimedRunnerConfig(RunnerConfig):
-        SCRIPT_PATH = join(getcwd(), "experiments/binaries/script.sh")
+
+        PROJECT_PATH = join(getcwd(), "WasmExperiment")
+
+        @classproperty
+        def BINARY_PATH(cls) -> str:
+            return join(cls.PROJECT_PATH, "Binaries")
+
+        @classproperty
+        def SCRIPT_PATH(cls) -> str:
+            return join(cls.BINARY_PATH, "script.sh")
 
     def __init__(self, config: Type[TimedRunnerConfig] = TimedRunnerConfig) -> None:
         super(TimedRunner, self).__init__()
@@ -100,14 +112,14 @@ class WasmRunner(TimedRunner):
         WASM_TIME = "/home/pi/.wasmtime/bin/wasmtime"
 
         # Obligatory
-        PROBLEM_DIR = join(getcwd(), "experiments/binaries")
         ALGORITHMS = ["binarytrees", "spectral-norm", "nbody"]
         LANGUAGES = ["rust", "javascript", "go", "c"]
-
         RUNTIME_PATHS = {"wasmer": WASMER_PATH, "wasmtime": WASM_TIME}
-        RUNTIMES = list(RUNTIME_PATHS.keys())
-
         PARAMETERS = {"binarytrees": 18, "spectral-norm": 1900, "nbody": 5000000}
+
+        @classproperty
+        def RUNTIMES(cls) -> List[str]:
+            return list(cls.RUNTIME_PATHS.keys())
 
         @classmethod
         def pipe_command(cls, algorithm: str, language: str) -> str:
@@ -125,9 +137,9 @@ class WasmRunner(TimedRunner):
 
             return str(cls.PARAMETERS[algorithm])
 
-    def __init__(self) -> None:
+    def __init__(self, config: Type[WasmRunnerConfig] = WasmRunnerConfig) -> None:
         super(WasmRunner, self).__init__()
-        self.config: Type[WasmRunnerConfig] = WasmRunnerConfig
+        self.config: Type[WasmRunnerConfig] = config
         self.algorithms = FactorModel("algorithm", self.config.ALGORITHMS)
         self.languages = FactorModel("language", self.config.LANGUAGES)
         self.runtimes = FactorModel("runtime", self.config.RUNTIMES)
@@ -146,7 +158,7 @@ class WasmRunner(TimedRunner):
         language = run_variation[self.languages.factor_name]
         runtime = self.config.RUNTIME_PATHS[run_variation[self.runtimes.factor_name]]
 
-        executable = join(self.config.PROBLEM_DIR, f"{algorithm}.{language}.wasm")
+        executable = join(self.config.BINARY_PATH, f"{algorithm}.{language}.wasm")
         pipe_command = self.config.pipe_command(algorithm, language)
         arguments = self.config.arguments(algorithm, language)
         command = f"{pipe_command} {runtime} {executable} {arguments}".strip()

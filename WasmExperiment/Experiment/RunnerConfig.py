@@ -1,6 +1,8 @@
 from os.path import dirname, realpath
 from pathlib import Path
 from typing import Dict, Any, Optional
+from os import getcwd
+from os.path import join
 
 from ConfigValidator.Config.Models.OperationType import OperationType
 from ConfigValidator.Config.Models.RunTableModel import RunTableModel
@@ -8,11 +10,30 @@ from ConfigValidator.Config.Models.RunnerContext import RunnerContext
 from EventManager.EventSubscriptionController import EventSubscriptionController
 from EventManager.Models.RunnerEvents import RunnerEvents
 from Plugins.WasmExperiments.Profiler import WasmProfiler, WasmReport
-from Plugins.WasmExperiments.Runner import WasmRunner
+from Plugins.WasmExperiments.Runner import WasmRunner, WasmRunnerConfig
 from ProgressManager.Output.OutputProcedure import OutputProcedure
 
 
 class RunnerConfig:
+
+
+    class CustomRunnerConfig(WasmRunnerConfig):
+        # Optional
+        DEBUG = False
+        WASMER_PATH = "/home/pi/.wasmer/bin/wasmer"
+        WASM_TIME = "/home/pi/.wasmtime/bin/wasmtime"
+
+        # Obligatory
+        PROJECT_PATH = join(getcwd(), "WasmExperiment")
+        ALGORITHMS = ["binarytrees", "spectral-norm", "nbody"]
+        # LANGUAGES = ["rust", "javascript", "go", "c"]
+        RUNTIME_PATHS = {"wasmer": WASMER_PATH, "wasmtime": WASM_TIME}
+        PARAMETERS = {"binarytrees": 18, "spectral-norm": 1900, "nbody": 5000000}
+
+        LANGUAGES = ["rust", "go", "c"]
+        # RUNTIME_PATHS = {"wasmer": WASMER_PATH}
+
+
     ROOT_DIR = Path(dirname(realpath(__file__)))
 
     # ================================ USER SPECIFIC CONFIG ================================
@@ -61,7 +82,7 @@ class RunnerConfig:
         """Create and return the run_table model here. A run_table is a List (rows) of tuples (columns),
         representing each run performed"""
 
-        self.runner = WasmRunner()
+        self.runner = WasmRunner(RunnerConfig.CustomRunnerConfig)
 
         self.run_table_model = RunTableModel(
             factors=self.runner.factors,
