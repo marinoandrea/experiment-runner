@@ -5,7 +5,8 @@ from typing import List, Type, Tuple
 from os import stat, kill, getcwd, chmod, remove, system
 from signal import Signals
 from os.path import join
-from psutil import Process, STATUS_RUNNING
+from psutil import Process, STATUS_SLEEPING
+from time import sleep
 
 from Plugins.WasmExperiments.ClassProperty import ClassPropertyMetaClass, classproperty
 from Plugins.WasmExperiments.ProcessManager import ProcessManager
@@ -75,12 +76,11 @@ class TimedRunner(Runner):
         self.shell_execute(time_script)
 
         shell_process = Process(self.process.pid)
-
-        print(shell_process.status)
-        while shell_process.status == STATUS_RUNNING:
-            pass
+        while shell_process.status() != STATUS_SLEEPING: sleep(0.1)
 
         script_process = shell_process.children(recursive=True)[1]
+        while script_process.status() != STATUS_SLEEPING: sleep(0.1)
+
         command_process = script_process.children(recursive=True)[0]
 
         self.subprocess_id = command_process.pid  # TODO: Figure our how to deal with multi-process environments
@@ -120,7 +120,7 @@ class WasmRunner(TimedRunner):
         ALGORITHMS = ["binarytrees", "spectral-norm", "nbody"]
         LANGUAGES = ["rust", "javascript", "go", "c"]
         RUNTIME_PATHS = {"wasmer": WASMER_PATH, "wasmtime": WASM_TIME}
-        PARAMETERS = {"binarytrees": 18, "spectral-norm": 1900, "nbody": 5000000}
+        PARAMETERS = {"binarytrees": 100, "spectral-norm": 1600000, "nbody": 1000000000}
 
         @classproperty
         def RUNTIMES(cls) -> List[str]:
