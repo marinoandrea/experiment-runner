@@ -76,6 +76,7 @@ class TimedRunner(Runner):
 
         shell_process = Process(self.process.pid)
 
+        print(shell_process.status)
         while shell_process.status == STATUS_RUNNING:
             pass
 
