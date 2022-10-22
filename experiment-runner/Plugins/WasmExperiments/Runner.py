@@ -5,7 +5,7 @@ from typing import List, Type, Tuple
 from os import stat, kill, getcwd, chmod, remove, system
 from signal import Signals
 from os.path import join
-from psutil import Process
+from psutil import Process, STATUS_RUNNING
 
 from Plugins.WasmExperiments.ClassProperty import ClassPropertyMetaClass, classproperty
 from Plugins.WasmExperiments.ProcessManager import ProcessManager
@@ -75,6 +75,10 @@ class TimedRunner(Runner):
         self.shell_execute(time_script)
 
         shell_process = Process(self.process.pid)
+
+        while shell_process.status == STATUS_RUNNING:
+            pass
+
         script_process = shell_process.children(recursive=True)[1]
         command_process = script_process.children(recursive=True)[0]
 
