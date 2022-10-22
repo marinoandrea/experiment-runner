@@ -95,7 +95,7 @@ class RunnerConfig:
         """Perform any activity required before starting the experiment here
         Invoked only once during the lifetime of the program."""
 
-        pass
+        RunnerConfig.CustomRunnerConfig.kill_runtimes()
 
     def before_run(self) -> None:
         """Perform any activity required before starting a run.

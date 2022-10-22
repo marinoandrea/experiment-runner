@@ -2,7 +2,7 @@ import logging
 import stat as lib_stat
 from subprocess import Popen
 from typing import List, Type, Tuple
-from os import stat, kill, getcwd, chmod, remove
+from os import stat, kill, getcwd, chmod, remove, system
 from signal import Signals
 from os.path import join
 from psutil import Process
@@ -120,6 +120,11 @@ class WasmRunner(TimedRunner):
         @classproperty
         def RUNTIMES(cls) -> List[str]:
             return list(cls.RUNTIME_PATHS.keys())
+
+        @classmethod
+        def kill_runtimes(cls) -> None:
+            for runtime in cls.RUNTIMES:
+                system(f"pkill -f {runtime}")
 
         @classmethod
         def pipe_command(cls, algorithm: str, language: str) -> str:
