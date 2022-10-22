@@ -59,7 +59,7 @@ class PerformanceProfiler(Profiler):
 
         for index, line in enumerate(self.stdout.readlines()):  # TODO: depends on order + is cryptic
             decoded_line = line.decode('ascii').strip()
-            decoded_arr = decoded_line.split("  ")
+            decoded_arr = decoded_line.split()
             cpu_usage = float(decoded_arr[0])
             mem_usage = float(decoded_arr[1])
             data_frame.loc[index] = [cpu_usage, mem_usage]

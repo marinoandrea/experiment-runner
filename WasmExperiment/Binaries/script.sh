@@ -1,1 +1,0 @@
-/home/pi/.wasmtime/bin/wasmtime /home/pi/experiment-runner-green-lab-2022/WasmExperiment/Binaries/nbody.c.wasm 5000000

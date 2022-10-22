@@ -163,7 +163,7 @@ class WasmRunner(TimedRunner):
         arguments = self.config.arguments(algorithm, language)
         command = f"{pipe_command} {runtime} {executable} {arguments}".strip()
 
-        print(f"\nAlgorithm: {algorithm}\nLanguage: {language}\nRuntime: {runtime}")
+        print(f"\nAlgorithm: {algorithm}\nLanguage: {language}\nRuntime: {run_variation[self.runtimes.factor_name]}")
         print(f"Command: {command}\n")
 
         # Not beautiful, but gets the job done...
