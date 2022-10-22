@@ -24,7 +24,7 @@ class RunnerConfig:
         WASM_TIME = "/home/pi/.wasmtime/bin/wasmtime"
 
         # Obligatory
-        PROJECT_PATH = join(getcwd(), "WasmExperiment")
+        PROJECT_PATH = "/home/experiment/experiment-runner-green-lab-2022/WasmExperiment"
         ALGORITHMS = ["binarytrees", "spectral-norm", "nbody"]
         # LANGUAGES = ["rust", "javascript", "go", "c"]
         RUNTIME_PATHS = {"wasmer": WASMER_PATH, "wasmtime": WASM_TIME}
