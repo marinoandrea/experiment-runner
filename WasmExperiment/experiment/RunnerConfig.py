@@ -1,19 +1,15 @@
-from EventManager.Models.RunnerEvents import RunnerEvents
-from EventManager.EventSubscriptionController import EventSubscriptionController
-from ConfigValidator.Config.Models.RunTableModel import RunTableModel
-from ConfigValidator.Config.Models.FactorModel import FactorModel
-from ConfigValidator.Config.Models.RunnerContext import RunnerContext
-from ConfigValidator.Config.Models.OperationType import OperationType
-from ProgressManager.Output.OutputProcedure import OutputProcedure as output
-
-from typing import Dict, List, Any, Optional
-from pathlib import Path
 from os.path import dirname, realpath
+from pathlib import Path
+from typing import Dict, Any, Optional
 
-import pandas as pd
-import time
-import subprocess
-import shlex
+from ConfigValidator.Config.Models.OperationType import OperationType
+from ConfigValidator.Config.Models.RunTableModel import RunTableModel
+from ConfigValidator.Config.Models.RunnerContext import RunnerContext
+from EventManager.EventSubscriptionController import EventSubscriptionController
+from EventManager.Models.RunnerEvents import RunnerEvents
+from Plugins.WasmExperiments.Profiler import WasmProfiler, WasmReport
+from Plugins.WasmExperiments.Runner import WasmRunner
+from ProgressManager.Output.OutputProcedure import OutputProcedure
 
 
 class RunnerConfig:
@@ -21,7 +17,7 @@ class RunnerConfig:
 
     # ================================ USER SPECIFIC CONFIG ================================
     """The name of the experiment."""
-    name:                       str             = "new_runner_experiment"
+    name:                       str             = "compare_wasm"
 
     """The path in which Experiment Runner will create a folder with the name `self.name`, in order to store the
     results from this experiment. (Path does not need to exist - it will be created if necessary.)
@@ -33,12 +29,18 @@ class RunnerConfig:
 
     """The time Experiment Runner will wait after a run completes.
     This can be essential to accommodate for cooldown periods on some systems."""
-    time_between_runs_in_ms:    int             = 1000
+    time_between_runs_in_ms:    int             = 1000 # TODO: bit much, isn't it?
 
     # Dynamic configurations can be one-time satisfied here before the program takes the config as-is
     # e.g. Setting some variable based on some criteria
     def __init__(self):
         """Executes immediately after program start, on config load"""
+
+        self.runner = None
+        self.profiler = None
+
+        self.target_pid = None
+        self.time_process = None
 
         EventSubscriptionController.subscribe_to_multiple_events([
             (RunnerEvents.BEFORE_EXPERIMENT, self.before_experiment),
@@ -51,111 +53,80 @@ class RunnerConfig:
             (RunnerEvents.POPULATE_RUN_DATA, self.populate_run_data),
             (RunnerEvents.AFTER_EXPERIMENT , self.after_experiment )
         ])
+
         self.run_table_model = None  # Initialized later
-        output.console_log("Custom config loaded")
+        OutputProcedure.console_log("Custom config loaded")
 
     def create_run_table_model(self) -> RunTableModel:
         """Create and return the run_table model here. A run_table is a List (rows) of tuples (columns),
         representing each run performed"""
-        cpu_limit_factor = FactorModel("cpu_limit", [20, 50, 70 ])
-        pin_core_factor  = FactorModel("pin_core" , [True, False])
+
+        self.runner = WasmRunner()
+
         self.run_table_model = RunTableModel(
-            factors = [cpu_limit_factor, pin_core_factor],
-            exclude_variations = [
-                {cpu_limit_factor: [70], pin_core_factor: [False]} # all runs having the combination <'70', 'False'> will be excluded
-            ],
-            data_columns=['avg_cpu']
+            factors=self.runner.factors,
+            data_columns=WasmReport.DATA_COLUMNS
         )
+
         return self.run_table_model
 
     def before_experiment(self) -> None:
         """Perform any activity required before starting the experiment here
         Invoked only once during the lifetime of the program."""
-        subprocess.check_call(['make'], cwd=self.ROOT_DIR) # compile
+
+        pass
 
     def before_run(self) -> None:
         """Perform any activity required before starting a run.
         No context is available here as the run is not yet active (BEFORE RUN)"""
+
         pass
 
     def start_run(self, context: RunnerContext) -> None:
         """Perform any activity required for starting the run here.
         For example, starting the target system to measure.
         Activities after starting the run should also be performed here."""
-        
-        cpu_limit = context.run_variation['cpu_limit']
-        pin_core  = context.run_variation['pin_core']
 
-        # start the target
-        self.target = subprocess.Popen(['./primer'],
-            stdout=subprocess.PIPE, stderr=subprocess.PIPE, cwd=self.ROOT_DIR,
-        )
-
-        # Configure the environment based on the current variation
-        if pin_core:
-            subprocess.check_call(shlex.split(f'taskset -cp 0  {self.target.pid}'))
-        subprocess.check_call(shlex.split(f'cpulimit -b -p {self.target.pid} --limit {cpu_limit}'))
-        
+        self.time_process, self.target_pid = self.runner.start(context)
 
     def start_measurement(self, context: RunnerContext) -> None:
         """Perform any activity required for starting measurements."""
 
-        # man 1 ps
-        # %cpu:
-        #   cpu utilization of the process in "##.#" format.  Currently, it is the CPU time used
-        #   divided by the time the process has been running (cputime/realtime ratio), expressed
-        #   as a percentage.  It will not add up to 100% unless you are lucky.  (alias pcpu).
-        profiler_cmd = f'ps -p {self.target.pid} --noheader -o %cpu %mem'
-        wrapper_script = f'''
-        while true; do {profiler_cmd}; sleep 1; done
-        '''
-
-        time.sleep(1) # allow the process to run a little before measuring
-        self.profiler = subprocess.Popen(['sh', '-c', wrapper_script],
-            stdout=subprocess.PIPE, stderr=subprocess.PIPE
-        )
+        self.profiler = WasmProfiler(self.target_pid, context)
+        self.profiler.start()
 
     def interact(self, context: RunnerContext) -> None:
         """Perform any interaction with the running target system here, or block here until the target finishes."""
 
-        # No interaction. We just run it for XX seconds.
-        # Another example would be to wait for the target to finish, e.g. via `self.target.wait()`
-        output.console_log("Running program for 20 seconds")
-        time.sleep(20)
+        self.runner.interact(context)
 
     def stop_measurement(self, context: RunnerContext) -> None:
         """Perform any activity here required for stopping measurements."""
 
-        self.profiler.kill()
-        self.profiler.wait()
+        self.profiler.stop()
 
     def stop_run(self, context: RunnerContext) -> None:
         """Perform any activity here required for stopping the run.
         Activities after stopping the run should also be performed here."""
-        
-        self.target.kill()
-        self.target.wait()
+
+        self.runner.stop()
     
     def populate_run_data(self, context: RunnerContext) -> Optional[Dict[str, Any]]:
         """Parse and process any measurement data here.
         You can also store the raw measurement data under `context.run_dir`
         Returns a dictionary with keys `self.run_table_model.data_columns` and their values populated"""
 
-        df = pd.DataFrame(columns=['cpu_usage', 'mem_usage'])
-        for i, l in enumerate(self.profiler.stdout.readlines()):
-            cpu_usage=float(l.decode('ascii').strip())
-            df.loc[i] = [cpu_usage]
-        
-        df.to_csv(context.run_dir / 'raw_data.csv', index=False)
+        report = self.profiler.report()
+        run_data = report.populate()
 
-        run_data = {
-            'avg_cpu': round(df['cpu_usage'].mean(), 3)
-        }
+        run_data["execution_time"] = self.runner.report_time()
+
         return run_data
 
     def after_experiment(self) -> None:
         """Perform any activity required after stopping the experiment here
         Invoked only once during the lifetime of the program."""
+
         pass
 
     # ================================ DO NOT ALTER BELOW THIS LINE ================================
