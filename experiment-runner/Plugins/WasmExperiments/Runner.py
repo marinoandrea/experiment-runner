@@ -18,8 +18,8 @@ class Runner(ProcessManager):
     class RunnerConfig:
         __metaclass__ = ClassPropertyMetaClass
 
-    def __init__(self, config: Type[RunnerConfig] = RunnerConfig):
-        self.config: Type[RunnerConfig] = config
+    def __init__(self, config: Type = RunnerConfig):
+        self.config: Type = config
         super(Runner, self).__init__()
 
     @property
@@ -50,9 +50,9 @@ class TimedRunner(Runner):
         def SCRIPT_PATH(cls) -> str:
             return join(cls.BINARY_PATH, "script.sh")
 
-    def __init__(self, config: Type[TimedRunnerConfig] = TimedRunnerConfig) -> None:
+    def __init__(self, config: Type = TimedRunnerConfig) -> None:
         super(TimedRunner, self).__init__()
-        self.config: Type[TimedRunnerConfig] = config
+        self.config: Type = config
         self.subprocess_id: int = None
         self.time_output: str = None
 
@@ -142,9 +142,9 @@ class WasmRunner(TimedRunner):
 
             return str(cls.PARAMETERS[algorithm])
 
-    def __init__(self, config: Type[WasmRunnerConfig] = WasmRunnerConfig) -> None:
+    def __init__(self, config: Type = WasmRunnerConfig) -> None:
         super(WasmRunner, self).__init__()
-        self.config: Type[WasmRunnerConfig] = config
+        self.config: Type = config
         self.algorithms = FactorModel("algorithm", self.config.ALGORITHMS)
         self.languages = FactorModel("language", self.config.LANGUAGES)
         self.runtimes = FactorModel("runtime", self.config.RUNTIMES)
