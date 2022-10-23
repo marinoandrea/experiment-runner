@@ -120,7 +120,7 @@ class WasmRunner(TimedRunner):
         ALGORITHMS = ["binarytrees", "spectral-norm", "nbody"]
         LANGUAGES = ["rust", "javascript", "go", "c"]
         RUNTIME_PATHS = {"wasmer": WASMER_PATH, "wasmtime": WASM_TIME}
-        PARAMETERS = {"binarytrees": 100, "spectral-norm": 1600000, "nbody": 1000000000}
+        PARAMETERS = {"binarytrees": {"input": 100, "repetitions": 1}, "spectral-norm": 1600000, "nbody": 1000000000}
 
         @classproperty
         def RUNTIMES(cls) -> List[str]:
@@ -136,6 +136,8 @@ class WasmRunner(TimedRunner):
             value = str(cls.PARAMETERS[algorithm])
 
             if language == "javascript":
+                if algorithm == "binarytrees":
+                    return "echo '{\"n\": %s, \"m\": %s}' |" % (value["input"], value["repetitions"])
                 return "echo '{\"n\": %s}' |" % value
 
             return ""
@@ -144,6 +146,10 @@ class WasmRunner(TimedRunner):
         def arguments(cls, algorithm: str, language: str) -> str:
             if language == "javascript":
                 return ""
+
+            if algorithm == "binarytrees":
+                params = cls.PARAMETERS[algorithm]
+                return f"{params['input']} {params['repetitions']}"
 
             return str(cls.PARAMETERS[algorithm])
 

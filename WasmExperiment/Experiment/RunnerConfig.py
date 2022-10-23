@@ -28,7 +28,7 @@ class RunnerConfig:
         ALGORITHMS = ["binarytrees", "spectral-norm", "nbody"]
         # LANGUAGES = ["rust", "javascript", "go", "c"]
         RUNTIME_PATHS = {"wasmer": WASMER_PATH, "wasmtime": WASM_TIME}
-        PARAMETERS = {"binarytrees": 18, "spectral-norm": 1900, "nbody": 5000000}
+        PARAMETERS = {"binarytrees": {"input": 100, "repetitions": 1}, "spectral-norm": 1600000, "nbody": 1000000000}
 
         LANGUAGES = ["rust", "go", "c"]
         # RUNTIME_PATHS = {"wasmer": WASMER_PATH}
