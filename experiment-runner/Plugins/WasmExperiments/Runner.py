@@ -1,17 +1,18 @@
 import logging
 import stat as lib_stat
-from subprocess import Popen
-from typing import List, Type, Tuple
-from os import stat, kill, getcwd, chmod, remove, system
-from signal import Signals
+from os import chmod, getcwd, kill, remove, stat, system
 from os.path import join
-from psutil import Process, STATUS_SLEEPING
+from signal import Signals
+from subprocess import Popen
 from time import sleep
+from typing import List, Tuple, Type
 
-from Plugins.WasmExperiments.ClassProperty import ClassPropertyMetaClass, classproperty
-from Plugins.WasmExperiments.ProcessManager import ProcessManager
 from ConfigValidator.Config.Models.FactorModel import FactorModel
 from ConfigValidator.Config.Models.RunnerContext import RunnerContext
+from Plugins.WasmExperiments.ClassProperty import (ClassPropertyMetaClass,
+                                                   classproperty)
+from Plugins.WasmExperiments.ProcessManager import ProcessManager
+from psutil import STATUS_SLEEPING, Process
 
 
 class Runner(ProcessManager):
@@ -133,12 +134,12 @@ class WasmRunner(TimedRunner):
 
         @classmethod
         def pipe_command(cls, algorithm: str, language: str) -> str:
-            value = str(cls.PARAMETERS[algorithm])
+            value = cls.PARAMETERS[algorithm]
 
             if language == "javascript":
                 if algorithm == "binarytrees":
-                    return "echo '{\"n\": %s, \"m\": %s}' |" % (value["input"], value["repetitions"])
-                return "echo '{\"n\": %s}' |" % value
+                    return "echo '{\"n\": %s, \"m\": %s}' |" % (str(value["input"]), str(value["repetitions"]))
+                return "echo '{\"n\": %s}' |" % str(value)
 
             return ""
 
