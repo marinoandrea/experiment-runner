@@ -21,19 +21,24 @@ class Config(WasmRunnerConfig):
     WAIT_PER_RUN_SEC = 1      # 60 seconds is the minimum we should use
     SHUFFLE          = False  # should be enabled for final run
 
-    PROJECT_PATH = "/home/experiment/experiment-runner-green-lab-2022/WasmExperiment"
-    ALGORITHMS   = ["binarytrees", "spectral-norm", "nbody"]
-    LANGUAGES    = ["rust", "javascript", "go", "c"]
-    PARAMETERS   = {
-        "binarytrees":   {"input": 15, "repetitions": 1}, 
-        "spectral-norm": 3325,  # 6650, 
-        "nbody":         10000000  # 55000000
+    PROJECT_PATH  = "/home/experiment/experiment-runner-green-lab-2022/WasmExperiment"
+    ALGORITHMS    = ["binarytrees", "nbody", "spectral-norm"]
+    LANGUAGES     = ["rust"]
+    RUNTIME_PATHS = {
+        "wasmer":   WasmRunnerConfig.DEFAULT_WASMER_PATH, 
+        # "wasmtime": WasmRunnerConfig.DEFAULT_WASM_TIME_PATH
+    }
+    PARAMETERS    = {
+        "binarytrees":   {"input": 17, "repetitions": 35}, 
+        "spectral-norm": 6650, 
+        "nbody":         50000000
     }
 
     def __init__(self) -> None:
         super(Config, self).__init__(project_path      = Config.PROJECT_PATH,
                                      algorithms        = Config.ALGORITHMS,
                                      languages         = Config.LANGUAGES,
+                                     runtime_paths     = Config.RUNTIME_PATHS, 
                                      parameters        = Config.PARAMETERS,
                                      repretition_count = Config.REPETITION_COUNT,
                                      debug             = Config.DEBUG)

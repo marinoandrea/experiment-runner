@@ -17,7 +17,7 @@ class ProcessManager:
 
     @property
     def is_running(self) -> bool:
-        return self.has_process and self.process.poll() is not None
+        return self.has_process and self.process.poll() is None
 
     @property
     def pid(self) -> int:
@@ -36,13 +36,14 @@ class ProcessManager:
         return self.process.stderr
 
     def validate_process(self):
+
+        # alternative check whether process is still running that definetly works, but cannot be implemented in is_running because Process is not serializable
+        # process = Process(self.pid)
+        # process.status() == STATUS_ZOMBIE
+
         if self.has_process:
-
-            process = Process(self.pid)
-
-            if process.status() == STATUS_ZOMBIE:
-                raise Exception(f"Process {self.process.pid} exited unexpectetly.")
-
+            if not self.is_running:
+                raise Exception(f"Process {self.pid} exited unexpectetly.")
         else:
             raise Exception(f"No process started.")
 
@@ -59,11 +60,11 @@ class ProcessManager:
             self.process.wait()
 
     def send_signal(self, signal: Signals) -> None:
-        if self.has_process:
+        if self.is_running:
             try:
-                kill(self.process.pid, signal)
-            except ProcessLookupError as e:
-                logging.warning(f"Could not kill process {self.process.pid}: {e}")
+                kill(self.pid, signal)
+            except ProcessLookupError:
+                logging.warning(f"Process {self.pid} already terminated.")
 
     def kill(self, signal: Signals) -> None:
         self.send_signal(signal)

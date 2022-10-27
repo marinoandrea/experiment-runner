@@ -84,6 +84,8 @@ class TimedRunner(Runner):
 
         self.shell_execute(time_script)
 
+        print(f"Started time process with pid {self.pid}.")
+
         # check if process died immediately
         self.validate_process()
 
@@ -112,15 +114,28 @@ class TimedRunner(Runner):
         self.subprocess_id = command_process.pid  # TODO: Figure our how to deal with multi-process environments
         self.time_output = output_path
 
+        print(f"Started target process with pid {self.subprocess_id}.\n")
+
     def send_signal(self, signal: Signals) -> None:
+        escaped = False
+
         if self.has_subprocess:
             try:
                 kill(self.subprocess_id, signal)
             except ProcessLookupError:
-                logging.warning(f"Subprocess {self.subprocess_id} already ended.")
+                print()
+                logging.warning(f"Target process {self.subprocess_id} already terminated.")
+                escaped = True
 
         if self.is_running:
-            super(TimedRunner, self).send_signal(signal)
+            try:
+                kill(self.pid, signal)
+            except ProcessLookupError:
+                if not escaped: print()
+                logging.warning(f"Time process {self.pid} already terminated.")
+                escaped = True
+
+        if escaped: print()
 
     def reset(self) -> None:
         super(TimedRunner, self).reset()
@@ -138,8 +153,8 @@ class WasmRunner(TimedRunner):
 
     class WasmRunnerConfig(TimedRunnerConfig):
 
-        DEFAULT_WASMER_PATH = "/home/pi/.wasmer/bin/wasmer"
-        DEFAULT_WASM_TIME   = "/home/pi/.wasmtime/bin/wasmtime"
+        DEFAULT_WASMER_PATH    = "/home/pi/.wasmer/bin/wasmer"
+        DEFAULT_WASM_TIME_PATH = "/home/pi/.wasmtime/bin/wasmtime"
 
         def __init__(self, project_path: str = None, 
                            binary_path: str  = None, 
@@ -148,7 +163,7 @@ class WasmRunner(TimedRunner):
                            languages:  List[str] = ["rust", "javascript", "go", "c"],
                            runtime_paths: Dict[str, str] = {
                                 "wasmer": DEFAULT_WASMER_PATH, 
-                                "wasmtime": DEFAULT_WASM_TIME
+                                "wasmtime": DEFAULT_WASM_TIME_PATH
                             },
                             parameters = {
                                 "binarytrees": {"input": 15, "repetitions": 18}, 
@@ -257,14 +272,18 @@ class WasmRunner(TimedRunner):
 
     def report_time(self) -> int:
 
-        with open(self.time_output, "r") as file:
-            line = file.readlines()[0].split()
+        try:
+            with open(self.time_output, "r") as file:
+                line = file.readlines()[0].split()
 
-        # calculate execution time in milliseconds
-        user_time = int(float(line[1].strip(",")) * 1000)
-        system_time = int(float(line[3].strip(",")) * 1000)
+            # calculate execution time in milliseconds
+            user_time = int(float(line[1].strip(",")) * 1000)
+            system_time = int(float(line[3].strip(",")) * 1000)
+        except:
+            # error message of time in first line, thus the process failed
+            raise Exception(f"The process {self.pid} exited with an error.")
+
         execution_time = user_time + system_time
-
         return execution_time
 
 
