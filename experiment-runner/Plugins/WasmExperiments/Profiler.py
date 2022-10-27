@@ -89,9 +89,12 @@ class EnergyProfiler(Profiler):
         self.execute(split(profiler_cmd))
 
     def report(self) -> EnergyReport:
-        data_frame = read_csv(join(self.context.run_dir, f"powerjoular.csv-{self.target_pid}.csv"))
-        data_frame.to_csv(join(self.context.run_dir, 'raw_data.csv'), index=False)
-        return EnergyReport(data_frame)
+        try:
+            data_frame = read_csv(join(self.context.run_dir, f"powerjoular.csv-{self.target_pid}.csv"))
+            data_frame.to_csv(join(self.context.run_dir, 'raw_data.csv'), index=False)
+            return EnergyReport(data_frame)
+        except IOError: 
+            raise Exception(f"Target process {self.target_pid} exited too early. Could not monitor power usage.")
 
 
 EnergyReport = EnergyProfiler.EnergyReport

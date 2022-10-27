@@ -13,7 +13,7 @@ from ConfigValidator.Config.Models.RunnerContext import RunnerContext
 from Plugins.WasmExperiments.ClassProperty import (ClassPropertyMetaClass,
                                                    classproperty)
 from Plugins.WasmExperiments.ProcessManager import ProcessManager
-from psutil import STATUS_SLEEPING, Process
+from psutil import STATUS_STOPPED, STATUS_ZOMBIE, Process
 
 
 class Runner(ProcessManager):
@@ -57,6 +57,9 @@ class TimedRunner(Runner):
             self.binary_path  = binary_path  if binary_path  is not None else join(self.project_path, "Binaries")
             self.script_path  = script_path  if script_path  is not None else join(self.binary_path, "script.sh")
 
+            self.max_iterations = 10
+            self.sleep_time = 0.1
+
     def __init__(self, config: TimedRunnerConfig = TimedRunnerConfig()) -> None:
         super(TimedRunner, self).__init__(config)
         self.subprocess_id: int = None
@@ -69,6 +72,10 @@ class TimedRunner(Runner):
     @property
     def has_subprocess(self) -> bool:
         return self.subprocess_id is not None
+
+    def validate_process(self):
+        if not self.is_running:
+            raise Exception(f"Process {self.process.pid} exited unexpectetly.")
 
     def create_timed_process(self, command: str, output_path: str = None) -> None:
 
@@ -83,14 +90,31 @@ class TimedRunner(Runner):
             time_script = f"/usr/bin/time -f 'User: %U, System: %S' {script_path}"
 
         self.shell_execute(time_script)
-        sleep(1)
+
+        # check if process died immediately
+        self.validate_process()
+
+        # if not, try to access children
         shell_process = Process(self.process.pid)
-        while shell_process.status() != STATUS_SLEEPING: sleep(0.1)
+        captured_children = False
+        iteration = 1
+        while not captured_children:
+            try:
+                script_process = shell_process.children(recursive=True)[1]
+                command_process = script_process.children(recursive=True)[0]
+                captured_children = True
+            except IndexError:
+                if iteration >= self.config.max_iterations:
+                    break
+                else:
+                    self.validate_process()
+                    logging.warning(f"Could not capture children of {shell_process.pid} instantly. Retrying after {self.config.sleep_time} seconds...")
+                    iteration += 1
+                    sleep(self.config.sleep_time)
 
-        script_process = shell_process.children(recursive=True)[1]
-        while script_process.status() != STATUS_SLEEPING: sleep(0.1)
-
-        command_process = script_process.children(recursive=True)[0]
+        if not captured_children:
+            seconds = self.config.sleep_time * iteration
+            raise Exception(f"Failed to capture children for process {shell_process.pid}. Stopped after {iteration} tries (~{seconds} seconds).")
 
         self.subprocess_id = command_process.pid  # TODO: Figure our how to deal with multi-process environments
         self.time_output = output_path
