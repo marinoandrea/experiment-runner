@@ -157,24 +157,30 @@ class WasmRunner(TimedRunner):
                                 "wasmer": DEFAULT_WASMER_PATH, 
                                 "wasmtime": DEFAULT_WASM_TIME
                             },
-                           parameters = {
+                            parameters = {
                                 "binarytrees": {"input": 15, "repetitions": 18}, 
                                 "spectral-norm": 6650, 
                                 "nbody": 55000000
                             },
+                            repretition_count: int = 10,
                             debug: bool = False):
 
             super().__init__(project_path, binary_path, script_path)
 
-            self.algorithms    = algorithms
-            self.languages     = languages
-            self.runtime_paths = runtime_paths
-            self.parameters    = parameters
-            self.debug         = debug
+            self.algorithms        = algorithms
+            self.languages         = languages
+            self.runtime_paths     = runtime_paths
+            self.parameters        = parameters
+            self.repretition_count = repretition_count
+            self.debug             = debug
 
         @property
         def runtimes(self) -> List[str]:
             return list(self.runtime_paths.keys())
+
+        @property
+        def repretitions(self) -> List[str]:
+            return [str(i) for i in range(self.repretition_count)]
 
         def kill_runtimes(self) -> None:
             for runtime in self.runtimes:
@@ -202,9 +208,10 @@ class WasmRunner(TimedRunner):
 
     def __init__(self, config: WasmRunnerConfig = WasmRunnerConfig()) -> None:
         super(WasmRunner, self).__init__(config)
-        self.algorithms = FactorModel("algorithm", self.config.algorithms)
-        self.languages = FactorModel("language", self.config.languages)
-        self.runtimes = FactorModel("runtime", self.config.runtimes)
+        self.algorithms  = FactorModel("algorithm", self.config.algorithms)
+        self.languages   = FactorModel("language",  self.config.languages)
+        self.runtimes    = FactorModel("runtime",   self.config.runtimes)
+        self.repetitions = FactorModel("id",        self.config.repretitions)
 
     @property
     def config(self) -> WasmRunnerConfig:
@@ -212,7 +219,7 @@ class WasmRunner(TimedRunner):
 
     @property
     def factors(self) -> List[FactorModel]:
-        return [self.algorithms, self.languages, self.runtimes]
+        return [self.algorithms, self.languages, self.runtimes, self.repetitions]
 
     def kill_runtimes(self):
         self.config.kill_runtimes()
@@ -224,16 +231,19 @@ class WasmRunner(TimedRunner):
         run_variation = context.run_variation
 
         algorithm = run_variation[self.algorithms.factor_name]
-        language = run_variation[self.languages.factor_name]
-        runtime = self.config.runtime_paths[run_variation[self.runtimes.factor_name]]
+        language  = run_variation[self.languages.factor_name]
+        runtime   = self.config.runtime_paths[run_variation[self.runtimes.factor_name]]
+        run_id    = run_variation[self.repetitions.factor_name]
 
         executable = join(self.config.binary_path, f"{algorithm}.{language}.wasm")
         pipe_command = self.config.pipe_command(algorithm, language)
         arguments = self.config.arguments(algorithm, language)
         command = f"{pipe_command} {runtime} {executable} {arguments}".strip()
 
-        print(f"\nAlgorithm: {algorithm}\nLanguage: {language}\nRuntime: {run_variation[self.runtimes.factor_name]}")
-        print(f"Command: {command}\n")
+        print("\n---------- Run Configuration ----------")
+        print(f"Algorithm: {algorithm}\nLanguage: {language}\nRuntime: {run_variation[self.runtimes.factor_name]}\nID: {run_id}\n")
+        print(f"Command: {command}")
+        print("---------------------------------------\n")
 
         # Not beautiful, but gets the job done...
         # There is no obvious way for this object to know that it is supposed to set the file size.

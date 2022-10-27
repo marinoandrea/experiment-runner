@@ -1,7 +1,6 @@
 from os.path import dirname, realpath
 from pathlib import Path
 from typing import Dict, Any, Optional
-from os import getcwd
 from os.path import join
 
 from ConfigValidator.Config.Models.OperationType import OperationType
@@ -11,7 +10,39 @@ from EventManager.EventSubscriptionController import EventSubscriptionController
 from EventManager.Models.RunnerEvents import RunnerEvents
 from Plugins.WasmExperiments.Profiler import WasmProfiler, WasmReport
 from Plugins.WasmExperiments.Runner import WasmRunner, WasmRunnerConfig
-from ProgressManager.Output.OutputProcedure import OutputProcedure
+from ProgressManager.Output.OutputProcedure import OutputProcedure as Output
+
+
+class Config(WasmRunnerConfig):
+
+    DEBUG = False
+    
+    REPETITION_COUNT = 1      # should be 10 for the final run
+    WAIT_PER_RUN_SEC = 1      # 60 seconds is the minimum we should use
+    SHUFFLE          = False  # should be enabled for final run
+
+    PROJECT_PATH = None  # "/home/experiment/experiment-runner-green-lab-2022/WasmExperiment"
+    ALGORITHMS   = ["binarytrees", "spectral-norm", "nbody"]
+    LANGUAGES    = ["rust", "javascript", "go", "c"]
+    PARAMETERS   = {
+        "binarytrees":   {"input": 15, "repetitions": 18}, 
+        "spectral-norm": 6650, 
+        "nbody":         55000000
+    }
+
+    def __init__(self) -> None:
+        super(Config, self).__init__(project_path      = Config.PROJECT_PATH,
+                                     algorithms        = Config.ALGORITHMS,
+                                     languages         = Config.LANGUAGES,
+                                     parameters        = Config.PARAMETERS,
+                                     repretition_count = Config.REPETITION_COUNT,
+                                     debug             = Config.DEBUG)
+
+        self.wait_per_run : int  = Config.WAIT_PER_RUN_SEC * 1000
+        self.shuffle      : bool = Config.SHUFFLE
+
+
+config = Config()
 
 
 class RunnerConfig:
@@ -20,19 +51,19 @@ class RunnerConfig:
 
     # ================================ USER SPECIFIC CONFIG ================================
     """The name of the experiment."""
-    name:                       str             = "compare_wasm"
+    name:                       str             = "wasm_benchmark"
 
     """The path in which Experiment Runner will create a folder with the name `self.name`, in order to store the
     results from this experiment. (Path does not need to exist - it will be created if necessary.)
     Output path defaults to the config file's path, inside the folder 'experiments'"""
-    results_output_path:        Path             = ROOT_DIR / 'experiments'
+    results_output_path:        Path             = Path(join(ROOT_DIR, 'experiments'))
 
     """Experiment operation type. Unless you manually want to initiate each run, use `OperationType.AUTO`."""
     operation_type:             OperationType   = OperationType.AUTO
 
     """The time Experiment Runner will wait after a run completes.
     This can be essential to accommodate for cooldown periods on some systems."""
-    time_between_runs_in_ms:    int             = 1000 # TODO: bit much, isn't it?
+    time_between_runs_in_ms:    int             = config.wait_per_run
 
     # Dynamic configurations can be one-time satisfied here before the program takes the config as-is
     # e.g. Setting some variable based on some criteria
@@ -58,27 +89,19 @@ class RunnerConfig:
         ])
 
         self.run_table_model = None  # Initialized later
-        OutputProcedure.console_log("Custom config loaded")
+        Output.console_log("Custom config loaded")
 
     def create_run_table_model(self) -> RunTableModel:
         """Create and return the run_table model here. A run_table is a List (rows) of tuples (columns),
         representing each run performed"""
 
-        config = WasmRunnerConfig(#project_path = "/home/experiment/experiment-runner-green-lab-2022/WasmExperiment",
-                                  algorithms = ["binarytrees", "spectral-norm", "nbody"],
-                                  languages = ["rust", "javascript", "go", "c"],
-                                  parameters = {
-                                        "binarytrees": {"input": 15, "repetitions": 18}, 
-                                        "spectral-norm": 6650, 
-                                        "nbody": 55000000
-                                    },
-                                  debug = False)
-
         self.runner: WasmRunner = WasmRunner(config)
 
         self.run_table_model = RunTableModel(
-            factors=self.runner.factors,
-            data_columns=WasmReport.DATA_COLUMNS
+            factors            = self.runner.factors,
+            exclude_variations = None,
+            data_columns       = WasmReport.DATA_COLUMNS,
+            shuffle            = config.SHUFFLE
         )
 
         return self.run_table_model
