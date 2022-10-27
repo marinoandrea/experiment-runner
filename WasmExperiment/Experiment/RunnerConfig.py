@@ -25,9 +25,9 @@ class Config(WasmRunnerConfig):
     ALGORITHMS   = ["binarytrees", "spectral-norm", "nbody"]
     LANGUAGES    = ["rust", "javascript", "go", "c"]
     PARAMETERS   = {
-        "binarytrees":   {"input": 15, "repetitions": 18}, 
-        "spectral-norm": 6650, 
-        "nbody":         55000000
+        "binarytrees":   {"input": 15, "repetitions": 1}, 
+        "spectral-norm": 3325  # 6650, 
+        "nbody":         10000000  # 55000000
     }
 
     def __init__(self) -> None:
