@@ -17,20 +17,20 @@ class Config(WasmRunnerConfig):
 
     DEBUG = False
     
-    REPETITION_COUNT = 1      # should be 10 for the final run
-    WAIT_PER_RUN_SEC = 1      # 60 seconds is the minimum we should use
-    SHUFFLE          = False  # should be enabled for final run
+    REPETITION_COUNT = 10   # should be 10 for the final run
+    WAIT_PER_RUN_SEC = 60   # 60 seconds is the minimum we should use
+    SHUFFLE          = True # should be enabled for final run
 
     PROJECT_PATH  = "/home/experiment/experiment-runner-green-lab-2022/WasmExperiment"
-    ALGORITHMS    = ["binarytrees", "nbody", "spectral-norm"]
-    LANGUAGES     = ["rust"]
+    ALGORITHMS    = ["binarytrees", "spectral-norm", "nbody"]
+    LANGUAGES     = ["rust", "go", "c", "javascript"]
     RUNTIME_PATHS = {
         "wasmer":   WasmRunnerConfig.DEFAULT_WASMER_PATH, 
-        # "wasmtime": WasmRunnerConfig.DEFAULT_WASM_TIME_PATH
+        "wasmtime": WasmRunnerConfig.DEFAULT_WASM_TIME_PATH
     }
     PARAMETERS    = {
-        "binarytrees":   {"input": 17, "repetitions": 35}, 
-        "spectral-norm": 6650, 
+        "binarytrees":   {"input": 16, "repetitions": 75}, 
+        "spectral-norm": 8000, 
         "nbody":         50000000
     }
 
