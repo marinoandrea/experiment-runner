@@ -3,6 +3,7 @@ from subprocess import Popen, PIPE
 from typing import List, Any
 from signal import Signals, SIGTERM
 from os import kill
+from psutil import Process, STATUS_ZOMBIE
 
 
 class ProcessManager:
@@ -19,6 +20,10 @@ class ProcessManager:
         return self.has_process and self.process.poll() is not None
 
     @property
+    def pid(self) -> int:
+        return self.process.pid if self.has_process else None
+
+    @property
     def stdin(self) -> Any:
         return self.process.stdin
 
@@ -29,6 +34,17 @@ class ProcessManager:
     @property
     def stderr(self) -> Any:
         return self.process.stderr
+
+    def validate_process(self):
+        if self.has_process:
+
+            process = Process(self.pid)
+
+            if process.status() == STATUS_ZOMBIE:
+                raise Exception(f"Process {self.process.pid} exited unexpectetly.")
+
+        else:
+            raise Exception(f"No process started.")
 
     def execute(self, command: List[str]) -> None:
         self.reset()
