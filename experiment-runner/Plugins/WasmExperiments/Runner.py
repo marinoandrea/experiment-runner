@@ -5,15 +5,12 @@ from os.path import join
 from signal import Signals
 from subprocess import Popen
 from time import sleep
-from typing import List, Tuple, Type, Dict, Any
-from xmlrpc.client import Boolean
+from typing import List, Tuple, Dict
 
 from ConfigValidator.Config.Models.FactorModel import FactorModel
 from ConfigValidator.Config.Models.RunnerContext import RunnerContext
-from Plugins.WasmExperiments.ClassProperty import (ClassPropertyMetaClass,
-                                                   classproperty)
 from Plugins.WasmExperiments.ProcessManager import ProcessManager
-from psutil import STATUS_STOPPED, STATUS_ZOMBIE, Process
+from psutil import Process
 
 
 class Runner(ProcessManager):
@@ -73,10 +70,6 @@ class TimedRunner(Runner):
     def has_subprocess(self) -> bool:
         return self.subprocess_id is not None
 
-    def validate_process(self):
-        if not self.is_running:
-            raise Exception(f"Process {self.process.pid} exited unexpectetly.")
-
     def create_timed_process(self, command: str, output_path: str = None) -> None:
 
         script_path = self.config.script_path
@@ -95,7 +88,7 @@ class TimedRunner(Runner):
         self.validate_process()
 
         # if not, try to access children
-        shell_process = Process(self.process.pid)
+        shell_process = Process(self.pid)
         captured_children = False
         iteration = 1
         while not captured_children:
@@ -123,8 +116,8 @@ class TimedRunner(Runner):
         if self.has_subprocess:
             try:
                 kill(self.subprocess_id, signal)
-            except ProcessLookupError as e:
-                logging.warning(f"Could not kill subprocess {self.subprocess_id}: {e}")
+            except ProcessLookupError:
+                logging.warning(f"Subprocess {self.subprocess_id} already ended.")
 
         if self.is_running:
             super(TimedRunner, self).send_signal(signal)
