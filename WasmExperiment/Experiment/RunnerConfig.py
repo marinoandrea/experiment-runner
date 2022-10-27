@@ -16,23 +16,6 @@ from ProgressManager.Output.OutputProcedure import OutputProcedure
 
 class RunnerConfig:
 
-
-    class CustomRunnerConfig(WasmRunnerConfig):
-        # Optional
-        DEBUG = False
-        WASMER_PATH = "/home/pi/.wasmer/bin/wasmer"
-        WASM_TIME = "/home/pi/.wasmtime/bin/wasmtime"
-
-        # Obligatory
-        PROJECT_PATH = "/home/experiment/experiment-runner-green-lab-2022/WasmExperiment"
-        ALGORITHMS = ["binarytrees", "spectral-norm", "nbody"]
-        # LANGUAGES = ["rust", "javascript", "go", "c"]
-        LANGUAGES = ["javascript"]
-        RUNTIME_PATHS = {"wasmer": WASMER_PATH, "wasmtime": WASM_TIME}
-        PARAMETERS = {"binarytrees": {"input": 15, "repetitions": 18}, "spectral-norm": 6650, "nbody": 55000000}
-        PARAMETERS = {"binarytrees": 15, "spectral-norm": 6650, "nbody": 55000000}
-
-
     ROOT_DIR = Path(dirname(realpath(__file__)))
 
     # ================================ USER SPECIFIC CONFIG ================================
@@ -81,7 +64,17 @@ class RunnerConfig:
         """Create and return the run_table model here. A run_table is a List (rows) of tuples (columns),
         representing each run performed"""
 
-        self.runner = WasmRunner(RunnerConfig.CustomRunnerConfig)
+        config = WasmRunnerConfig(#project_path = "/home/experiment/experiment-runner-green-lab-2022/WasmExperiment",
+                                  algorithms = ["binarytrees", "spectral-norm", "nbody"],
+                                  languages = ["rust", "javascript", "go", "c"],
+                                  parameters = {
+                                        "binarytrees": {"input": 15, "repetitions": 18}, 
+                                        "spectral-norm": 6650, 
+                                        "nbody": 55000000
+                                    },
+                                  debug = False)
+
+        self.runner: WasmRunner = WasmRunner(config)
 
         self.run_table_model = RunTableModel(
             factors=self.runner.factors,
@@ -94,13 +87,13 @@ class RunnerConfig:
         """Perform any activity required before starting the experiment here
         Invoked only once during the lifetime of the program."""
 
-        RunnerConfig.CustomRunnerConfig.kill_runtimes()
+        pass
 
     def before_run(self) -> None:
         """Perform any activity required before starting a run.
         No context is available here as the run is not yet active (BEFORE RUN)"""
 
-        pass
+        self.runner.kill_runtimes()
 
     def start_run(self, context: RunnerContext) -> None:
         """Perform any activity required for starting the run here.

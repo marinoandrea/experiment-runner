@@ -5,7 +5,8 @@ from os.path import join
 from signal import Signals
 from subprocess import Popen
 from time import sleep
-from typing import List, Tuple, Type
+from typing import List, Tuple, Type, Dict, Any
+from xmlrpc.client import Boolean
 
 from ConfigValidator.Config.Models.FactorModel import FactorModel
 from ConfigValidator.Config.Models.RunnerContext import RunnerContext
@@ -18,11 +19,15 @@ from psutil import STATUS_SLEEPING, Process
 class Runner(ProcessManager):
 
     class RunnerConfig:
-        __metaclass__ = ClassPropertyMetaClass
+        pass
 
-    def __init__(self, config: Type = RunnerConfig):
-        self.config: Type = config
+    def __init__(self, config: RunnerConfig = RunnerConfig()):
         super(Runner, self).__init__()
+        self._config: RunnerConfig = config
+
+    @property
+    def config(self) -> RunnerConfig:
+        return self._config
 
     @property
     def factors(self) -> List[FactorModel]:
@@ -42,21 +47,24 @@ class TimedRunner(Runner):
 
     class TimedRunnerConfig(RunnerConfig):
 
-        PROJECT_PATH = join(getcwd(), "WasmExperiment")
+        def __init__(self, project_path: str = None, 
+                           binary_path: str  = None, 
+                           script_path: str  = None):
 
-        @classproperty
-        def BINARY_PATH(cls) -> str:
-            return join(cls.PROJECT_PATH, "Binaries")
+            super().__init__()
 
-        @classproperty
-        def SCRIPT_PATH(cls) -> str:
-            return join(cls.BINARY_PATH, "script.sh")
+            self.project_path = project_path if project_path is not None else join(getcwd(), "WasmExperiment")
+            self.binary_path  = binary_path  if binary_path  is not None else join(self.project_path, "Binaries")
+            self.script_path  = script_path  if script_path  is not None else join(self.binary_path, "script.sh")
 
-    def __init__(self, config: Type = TimedRunnerConfig) -> None:
-        super(TimedRunner, self).__init__()
-        self.config: Type = config
+    def __init__(self, config: TimedRunnerConfig = TimedRunnerConfig()) -> None:
+        super(TimedRunner, self).__init__(config)
         self.subprocess_id: int = None
         self.time_output: str = None
+
+    @property
+    def config(self) -> TimedRunnerConfig:
+        return self._config
 
     @property
     def has_subprocess(self) -> bool:
@@ -64,7 +72,7 @@ class TimedRunner(Runner):
 
     def create_timed_process(self, command: str, output_path: str = None) -> None:
 
-        script_path = self.config.SCRIPT_PATH
+        script_path = self.config.script_path
         with open(script_path, "w") as file:
             file.write(command)
         chmod(script_path, lib_stat.S_IRWXU | lib_stat.S_IRWXG | lib_stat.S_IRWXO)
@@ -112,29 +120,44 @@ TimedRunnerConfig = TimedRunner.TimedRunnerConfig
 class WasmRunner(TimedRunner):
 
     class WasmRunnerConfig(TimedRunnerConfig):
-        # Optional
-        DEBUG = False
-        WASMER_PATH = "/home/pi/.wasmer/bin/wasmer"
-        WASM_TIME = "/home/pi/.wasmtime/bin/wasmtime"
 
-        # Obligatory
-        ALGORITHMS = ["binarytrees", "spectral-norm", "nbody"]
-        # LANGUAGES = ["rust", "javascript", "go", "c"]
-        LANGUAGES = ["javascript"]
-        RUNTIME_PATHS = {"wasmer": WASMER_PATH, "wasmtime": WASM_TIME}
-        PARAMETERS = {"binarytrees": {"input": 15, "repetitions": 18}, "spectral-norm": 6650, "nbody": 55000000}
-        @classproperty
-        def RUNTIMES(cls) -> List[str]:
-            return list(cls.RUNTIME_PATHS.keys())
+        DEFAULT_WASMER_PATH = "/home/pi/.wasmer/bin/wasmer"
+        DEFAULT_WASM_TIME   = "/home/pi/.wasmtime/bin/wasmtime"
 
-        @classmethod
-        def kill_runtimes(cls) -> None:
-            for runtime in cls.RUNTIMES:
+        def __init__(self, project_path: str = None, 
+                           binary_path: str  = None, 
+                           script_path: str  = None,
+                           algorithms: List[str] = ["binarytrees", "spectral-norm", "nbody"],
+                           languages:  List[str] = ["rust", "javascript", "go", "c"],
+                           runtime_paths: Dict[str, str] = {
+                                "wasmer": DEFAULT_WASMER_PATH, 
+                                "wasmtime": DEFAULT_WASM_TIME
+                            },
+                           parameters = {
+                                "binarytrees": {"input": 15, "repetitions": 18}, 
+                                "spectral-norm": 6650, 
+                                "nbody": 55000000
+                            },
+                            debug: bool = False):
+
+            super().__init__(project_path, binary_path, script_path)
+
+            self.algorithms    = algorithms
+            self.languages     = languages
+            self.runtime_paths = runtime_paths
+            self.parameters    = parameters
+            self.debug         = debug
+
+        @property
+        def runtimes(self) -> List[str]:
+            return list(self.runtime_paths.keys())
+
+        def kill_runtimes(self) -> None:
+            for runtime in self.runtimes:
                 system(f"pkill -f {runtime}")
 
-        @classmethod
-        def pipe_command(cls, algorithm: str, language: str) -> str:
-            value = cls.PARAMETERS[algorithm]
+        def pipe_command(self, algorithm: str, language: str) -> str:
+            value = self.parameters[algorithm]
 
             if language == "javascript":
                 if algorithm == "binarytrees":
@@ -143,27 +166,32 @@ class WasmRunner(TimedRunner):
 
             return ""
 
-        @classmethod
-        def arguments(cls, algorithm: str, language: str) -> str:
+        def arguments(self, algorithm: str, language: str) -> str:
             if language == "javascript":
                 return ""
 
             if algorithm == "binarytrees":
-                params = cls.PARAMETERS[algorithm]
+                params = self.parameters[algorithm]
                 return f"{params['input']} {params['repetitions']}"
 
-            return str(cls.PARAMETERS[algorithm])
+            return str(self.parameters[algorithm])
 
-    def __init__(self, config: Type = WasmRunnerConfig) -> None:
-        super(WasmRunner, self).__init__()
-        self.config: Type = config
-        self.algorithms = FactorModel("algorithm", self.config.ALGORITHMS)
-        self.languages = FactorModel("language", self.config.LANGUAGES)
-        self.runtimes = FactorModel("runtime", self.config.RUNTIMES)
+    def __init__(self, config: WasmRunnerConfig = WasmRunnerConfig()) -> None:
+        super(WasmRunner, self).__init__(config)
+        self.algorithms = FactorModel("algorithm", self.config.algorithms)
+        self.languages = FactorModel("language", self.config.languages)
+        self.runtimes = FactorModel("runtime", self.config.runtimes)
+
+    @property
+    def config(self) -> WasmRunnerConfig:
+        return self._config
 
     @property
     def factors(self) -> List[FactorModel]:
         return [self.algorithms, self.languages, self.runtimes]
+
+    def kill_runtimes(self):
+        self.config.kill_runtimes()
 
     def start(self, context: RunnerContext) -> Tuple[Popen, int]:
         super(WasmRunner, self).start(context)
@@ -173,21 +201,12 @@ class WasmRunner(TimedRunner):
 
         algorithm = run_variation[self.algorithms.factor_name]
         language = run_variation[self.languages.factor_name]
-        runtime = self.config.RUNTIME_PATHS[run_variation[self.runtimes.factor_name]]
+        runtime = self.config.runtime_paths[run_variation[self.runtimes.factor_name]]
 
-        executable = join(self.config.BINARY_PATH, f"{algorithm}.{language}.wasm")
+        executable = join(self.config.binary_path, f"{algorithm}.{language}.wasm")
         pipe_command = self.config.pipe_command(algorithm, language)
         arguments = self.config.arguments(algorithm, language)
         command = f"{pipe_command} {runtime} {executable} {arguments}".strip()
-
-        # if algorithm == "binarytrees":
-        #     command = f'''
-	    #         counter=1
-	    #         while [ $counter -le f{10} ]
-	    #         do
-		#             f{command}
-        #         done
-        #     '''
 
         print(f"\nAlgorithm: {algorithm}\nLanguage: {language}\nRuntime: {run_variation[self.runtimes.factor_name]}")
         print(f"Command: {command}\n")
@@ -207,7 +226,7 @@ class WasmRunner(TimedRunner):
 
     def stop(self) -> None:
         super(WasmRunner, self).stop()
-        remove(self.config.SCRIPT_PATH)
+        remove(self.config.script_path)
 
     def report_time(self) -> int:
 
