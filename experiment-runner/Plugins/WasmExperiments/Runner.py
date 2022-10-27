@@ -75,7 +75,7 @@ class TimedRunner(Runner):
             time_script = f"/usr/bin/time -f 'User: %U, System: %S' {script_path}"
 
         self.shell_execute(time_script)
-
+        sleep(1)
         shell_process = Process(self.process.pid)
         while shell_process.status() != STATUS_SLEEPING: sleep(0.1)
 
@@ -119,10 +119,10 @@ class WasmRunner(TimedRunner):
 
         # Obligatory
         ALGORITHMS = ["binarytrees", "spectral-norm", "nbody"]
-        LANGUAGES = ["rust", "javascript", "go", "c"]
+        # LANGUAGES = ["rust", "javascript", "go", "c"]
+        LANGUAGES = ["javascript"]
         RUNTIME_PATHS = {"wasmer": WASMER_PATH, "wasmtime": WASM_TIME}
-        PARAMETERS = {"binarytrees": {"input": 100, "repetitions": 1}, "spectral-norm": 1600000, "nbody": 1000000000}
-
+        PARAMETERS = {"binarytrees": {"input": 15, "repetitions": 18}, "spectral-norm": 6650, "nbody": 55000000}
         @classproperty
         def RUNTIMES(cls) -> List[str]:
             return list(cls.RUNTIME_PATHS.keys())
@@ -179,6 +179,15 @@ class WasmRunner(TimedRunner):
         pipe_command = self.config.pipe_command(algorithm, language)
         arguments = self.config.arguments(algorithm, language)
         command = f"{pipe_command} {runtime} {executable} {arguments}".strip()
+
+        # if algorithm == "binarytrees":
+        #     command = f'''
+	    #         counter=1
+	    #         while [ $counter -le f{10} ]
+	    #         do
+		#             f{command}
+        #         done
+        #     '''
 
         print(f"\nAlgorithm: {algorithm}\nLanguage: {language}\nRuntime: {run_variation[self.runtimes.factor_name]}")
         print(f"Command: {command}\n")

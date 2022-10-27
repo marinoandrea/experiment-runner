@@ -27,11 +27,10 @@ class RunnerConfig:
         PROJECT_PATH = "/home/experiment/experiment-runner-green-lab-2022/WasmExperiment"
         ALGORITHMS = ["binarytrees", "spectral-norm", "nbody"]
         # LANGUAGES = ["rust", "javascript", "go", "c"]
+        LANGUAGES = ["javascript"]
         RUNTIME_PATHS = {"wasmer": WASMER_PATH, "wasmtime": WASM_TIME}
-        PARAMETERS = {"binarytrees": {"input": 100, "repetitions": 1}, "spectral-norm": 1600000, "nbody": 1000000000}
-
-        LANGUAGES = ["rust", "go", "c"]
-        # RUNTIME_PATHS = {"wasmer": WASMER_PATH}
+        PARAMETERS = {"binarytrees": {"input": 15, "repetitions": 18}, "spectral-norm": 6650, "nbody": 55000000}
+        PARAMETERS = {"binarytrees": 15, "spectral-norm": 6650, "nbody": 55000000}
 
 
     ROOT_DIR = Path(dirname(realpath(__file__)))
