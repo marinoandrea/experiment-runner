@@ -21,7 +21,7 @@ class Config(WasmRunnerConfig):
     WAIT_PER_RUN_SEC = 1      # 60 seconds is the minimum we should use
     SHUFFLE          = False  # should be enabled for final run
 
-    PROJECT_PATH = None  # "/home/experiment/experiment-runner-green-lab-2022/WasmExperiment"
+    PROJECT_PATH = "/home/experiment/experiment-runner-green-lab-2022/WasmExperiment"
     ALGORITHMS   = ["binarytrees", "spectral-norm", "nbody"]
     LANGUAGES    = ["rust", "javascript", "go", "c"]
     PARAMETERS   = {
