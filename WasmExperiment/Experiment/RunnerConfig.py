@@ -26,7 +26,7 @@ class Config(WasmRunnerConfig):
     LANGUAGES    = ["rust", "javascript", "go", "c"]
     PARAMETERS   = {
         "binarytrees":   {"input": 15, "repetitions": 1}, 
-        "spectral-norm": 3325  # 6650, 
+        "spectral-norm": 3325,  # 6650, 
         "nbody":         10000000  # 55000000
     }
 
