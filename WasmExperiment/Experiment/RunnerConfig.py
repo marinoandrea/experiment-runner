@@ -17,11 +17,11 @@ class Config(WasmRunnerConfig):
 
     DEBUG = False
     
-    REPETITION_COUNT = 10   # should be 10 for the final run
-    WAIT_PER_RUN_SEC = 60   # 60 seconds is the minimum we should use
-    SHUFFLE          = True # should be enabled for final run
+    REPETITION_COUNT = 10    # should be 10 for the final run
+    WAIT_PER_RUN_SEC = 60    # 60 seconds is the minimum we should use
+    SHUFFLE          = True  # should be enabled for final run
 
-    PROJECT_PATH  = "/home/experiment/experiment-runner-green-lab-2022/WasmExperiment"
+    PROJECT_PATH  = "/home/pi/experiment-runner-green-lab-2022/WasmExperiment"
     ALGORITHMS    = ["binarytrees", "spectral-norm", "nbody"]
     LANGUAGES     = ["rust", "go", "c", "javascript"]
     RUNTIME_PATHS = {
