@@ -30,8 +30,8 @@ class Config(WasmRunnerConfig):
         "wasmtime": WasmRunnerConfig.DEFAULT_WASM_TIME_PATH
     }
     PARAMETERS    = {
-        "binarytrees":   {"input": 16, "repetitions": 85}, 
-        "spectral-norm": 8300, 
+        "binarytrees":   {"input": 16, "repetitions": 80}, 
+        "spectral-norm": 8100, 
         "nbody":         55000000
     }
 
