@@ -23,7 +23,8 @@ class Config(WasmRunnerConfig):
 
     PROJECT_PATH  = "/home/pi/experiment-runner-green-lab-2022/WasmExperiment"
     ALGORITHMS    = ["binarytrees", "spectral-norm", "nbody"]
-    LANGUAGES     = ["rust", "go", "c", "javascript"]
+    # LANGUAGES     = ["rust", "go", "c", "javascript"]
+    LANGUAGES     = ["rust", "go", "c"]
     RUNTIME_PATHS = {
         "wasmer":   WasmRunnerConfig.DEFAULT_WASMER_PATH, 
         "wasmtime": WasmRunnerConfig.DEFAULT_WASM_TIME_PATH
