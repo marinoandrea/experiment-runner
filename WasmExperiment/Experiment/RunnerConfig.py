@@ -30,9 +30,9 @@ class Config(WasmRunnerConfig):
         "wasmtime": WasmRunnerConfig.DEFAULT_WASM_TIME_PATH
     }
     PARAMETERS    = {
-        "binarytrees":   {"input": 16, "repetitions": 75}, 
-        "spectral-norm": 8000, 
-        "nbody":         50000000
+        "binarytrees":   {"input": 16, "repetitions": 85}, 
+        "spectral-norm": 8300, 
+        "nbody":         55000000
     }
 
     def __init__(self) -> None:
